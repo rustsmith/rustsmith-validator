@@ -1,3 +1,4 @@
+import argparse
 import concurrent.futures
 import os
 import shutil
@@ -24,7 +25,11 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V]) -> Non
     progress.update(1)
 
 
-def main(threads: int = 4, directory: str = "/Users/mayank/Documents/RustSmith/outRust") -> None:
+def main(threads: int = 4) -> None:
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('directory', type=str, nargs="?", help='directory of rust files', default="outRust")
+    args = parser.parse_args()
+    directory = args.directory
     files = os.listdir(directory)
     files.sort()
     optimization_flags = ["0", "1", "2", "3", "s", "z"]
