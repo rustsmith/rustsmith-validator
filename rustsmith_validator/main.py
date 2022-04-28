@@ -18,10 +18,16 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V]) -> Non
     with open(output_path / "compile.log", "w") as file:
         file.write(result.stderr.decode())
     if result.returncode == 0:
-        run_result = subprocess.run(output_path / 'out', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        with open(output_path / "output.log", "w") as file:
-            file.write(run_result.stdout.decode())
-            file.write(run_result.stderr.decode())
+        try:
+            run_result = subprocess.run(output_path / 'out', stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                        timeout=5.0)
+            with open(output_path / "output.log", "w") as file:
+                file.write(run_result.stdout.decode())
+                file.write(run_result.stderr.decode())
+                file.write(f"Exit Code {run_result.returncode}")
+        except subprocess.TimeoutExpired:
+            with open(output_path / "output.log", "w") as file:
+                file.write("Timeout")
     progress.update(1)
 
 
