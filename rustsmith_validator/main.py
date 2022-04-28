@@ -10,7 +10,7 @@ from click._termui_impl import ProgressBar, V
 
 
 def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V]) -> None:
-    output_path = file_path.parent / f'O{flag}'
+    output_path = file_path.parent / f"O{flag}"
     shutil.rmtree(output_path, ignore_errors=True)
     os.mkdir(output_path)
     command = f"rustc -C opt-level={flag} {file_path} -o {output_path / 'out'}"
@@ -19,8 +19,9 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V]) -> Non
         file.write(result.stderr.decode())
     if result.returncode == 0:
         try:
-            run_result = subprocess.run(output_path / 'out', stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                        timeout=5.0)
+            run_result = subprocess.run(
+                output_path / "out", stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5.0
+            )
             with open(output_path / "output.log", "w") as file:
                 file.write(run_result.stdout.decode())
                 file.write(run_result.stderr.decode())
@@ -32,8 +33,8 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V]) -> Non
 
 
 def main(threads: int = 4) -> None:
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('directory', type=str, nargs="?", help='directory of rust files', default="outRust")
+    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser.add_argument("directory", type=str, nargs="?", help="directory of rust files", default="outRust")
     args = parser.parse_args()
     directory = args.directory
     files = os.listdir(directory)
