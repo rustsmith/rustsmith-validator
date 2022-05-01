@@ -3,13 +3,14 @@ import concurrent.futures
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import typer
 from click._termui_impl import ProgressBar, V
 
 
-def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V]) -> None:
+def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V], directory: str, timeout: float) -> None:
     output_path = file_path.parent / f"O{flag}"
     shutil.rmtree(output_path, ignore_errors=True)
     os.mkdir(output_path)
@@ -19,9 +20,13 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V]) -> Non
         file.write(result.stderr.decode())
     if result.returncode == 0:
         try:
+            start_time = time.time()
             run_result = subprocess.run(
-                output_path / "out", stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5.0
+                output_path / "out", stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout
             )
+            end_time = time.time() - start_time
+            with open(Path(directory) / "time.log", "a") as file:
+                file.write(f"{end_time}\n")
             with open(output_path / "output.log", "w") as file:
                 file.write(run_result.stdout.decode())
                 file.write(run_result.stderr.decode())
@@ -32,20 +37,21 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V]) -> Non
     progress.update(1)
 
 
-def main(threads: int = 4) -> None:
-    parser = argparse.ArgumentParser(description="Process some integers.")
-    parser.add_argument("directory", type=str, nargs="?", help="directory of rust files", default="outRust")
-    args = parser.parse_args()
-    directory = args.directory
+def main(threads: int = 8, timeout: float = 5.0) -> None:
+    directory = "outRust"
     files = os.listdir(directory)
-    files.sort()
+    files.sort(key=lambda x: int(x.split("file")[1]))
     optimization_flags = ["0", "1", "2", "3", "s", "z"]
     with typer.progressbar(label="Progress", length=len(files) * len(optimization_flags)) as progress:
         with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
             tasks = []
             for file in files:
                 for flag in optimization_flags:
-                    tasks.append(executor.submit(compile_and_run, Path(directory, file, file + ".rs"), flag, progress))
+                    tasks.append(
+                        executor.submit(
+                            compile_and_run, Path(directory, file, file + ".rs"), flag, progress, directory, timeout
+                        )
+                    )
             for future in concurrent.futures.as_completed(tasks):
                 future.result()
     for file in files:
