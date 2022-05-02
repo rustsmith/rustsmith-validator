@@ -39,7 +39,7 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V], direct
 
 def main(threads: int = 8, timeout: float = 5.0) -> None:
     directory = "outRust"
-    files = os.listdir(directory)
+    files = [dI for dI in os.listdir(directory) if os.path.isdir(os.path.join(directory, dI))]
     files.sort(key=lambda x: int(x.split("file")[1]))
     optimization_flags = ["0", "1", "2", "3", "s", "z"]
     with typer.progressbar(label="Progress", length=len(files) * len(optimization_flags)) as progress:
