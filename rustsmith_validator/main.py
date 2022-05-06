@@ -14,6 +14,8 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V], direct
     output_path = file_path.parent / f"O{flag}"
     shutil.rmtree(output_path, ignore_errors=True)
     os.mkdir(output_path)
+    fmt_command = f"rustfmt {file_path}"
+    subprocess.run(fmt_command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     command = f"rustc -C opt-level={flag} {file_path} -o {output_path / 'out'}"
     result = subprocess.run(command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     with open(output_path / "compile.log", "w") as file:
