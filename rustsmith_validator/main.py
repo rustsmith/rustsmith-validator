@@ -23,8 +23,10 @@ def compile_and_run(file_path: Path, flag: str, progress: ProgressBar[V], direct
     if result.returncode == 0:
         try:
             start_time = time.time()
+            with open(file_path.parent / (file_path.stem + '.txt')) as file:
+                cli_args = file.read()
             run_result = subprocess.run(
-                output_path / "out", stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout
+                [f"{output_path / 'out'}", *cli_args.split(" ")], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout
             )
             end_time = time.time() - start_time
             with open(Path(directory) / "time.log", "a") as file:
