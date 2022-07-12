@@ -12,32 +12,7 @@ from typing import Dict
 import typer
 from click._termui_impl import ProgressBar, V
 
-config = {
-    "stage_1_commands": {
-        "O0": "./build/aarch64-apple-darwin/stage2/bin/rustc -Zmir-opt-level=0 {file_path} -o {output}",
-        "O1": "./build/aarch64-apple-darwin/stage2/bin/rustc -Zmir-opt-level=1 {file_path} -o {output}",
-        "O2": "./build/aarch64-apple-darwin/stage2/bin/rustc -Zmir-opt-level=2 {file_path} -o {output}",
-        "O3": "./build/aarch64-apple-darwin/stage2/bin/rustc -Zmir-opt-level=3 {file_path} -o {output}",
-        "OE": "./build/aarch64-apple-darwin/stage2/bin/rustc -Zexperimental-mir-optimizations {file_path} -o {output}",
-        # "O0": "rustc -Zmir-opt-level=0 {file_path} -o {output}",
-        # "O1": "rustc -Zmir-opt-level=1 {file_path} -o {output}",
-        # "O2": "rustc -Zmir-opt-level=2 {file_path} -o {output}",
-        # "O3": "rustc -Zmir-opt-level=3 {file_path} -o {output}",
-        # "O0": "rustc -C opt-level=0 {file_path} -o {output}",
-        # "O1": "rustc -C opt-level=1 {file_path} -o {output}",
-        # "O2": "rustc -C opt-level=2 {file_path} -o {output}",
-        # "O3": "rustc -C opt-level=3 {file_path} -o {output}",
-        # "Os": "rustc -C opt-level=s {file_path} -o {output}",
-        # "Oz": "rustc -C opt-level=z {file_path} -o {output}",
-        # "C0": "/Users/mayank/Downloads/build/rustc-clif -C opt-level=0 {file_path} -o {output}",
-        # "C1": "/Users/mayank/Downloads/build/rustc-clif -C opt-level=1 {file_path} -o {output}",
-        # "C2": "/Users/mayank/Downloads/build/rustc-clif -C opt-level=2 {file_path} -o {output}",
-        # "C3": "/Users/mayank/Downloads/build/rustc-clif -C opt-level=3 {file_path} -o {output}",
-        # "Cs": "/Users/mayank/Downloads/build/rustc-clif -C opt-level=s {file_path} -o {output}",
-        # "Cz": "/Users/mayank/Downloads/build/rustc-clif -C opt-level=z {file_path} -o {output}",
-        # "GO1": 'docker run --rm -v {folder_path}:/usr/src/myapp -w /usr/src/myapp philberty/gccrs:latest gccrs -g -O1 {file_name} -o {output}',
-    }
-}
+from rustsmith_validator.config import config
 
 
 def compile_and_run(
@@ -54,6 +29,7 @@ def compile_and_run(
         "file_name": os.path.split(file_path)[1],
         "file_path": file_path.absolute(),
         "output": (output_path / "out"),
+        "output_name": os.path.split(output_path)[1] + "/out",
     }
     shutil.rmtree(output_path, ignore_errors=True)
     os.mkdir(output_path)
@@ -62,18 +38,21 @@ def compile_and_run(
     command = entry[1].format(**config_for_stage_1_command)
     # command = f"rustc -C opt-level={flag} {file_path} -o {output_path / 'out'}"
     result = subprocess.run(
-        command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, cwd="/Users/mayank/Documents/rust"
+        command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
     )
-    command_2 = f"cp default.profraw code-{entry[0]}-{os.path.split(file_path)[1]}.profraw"
-    result2 = subprocess.run(
-        command_2.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, cwd="/Users/mayank/Documents/rust"
-    )
+    # command_2 = f"cp default.profraw code-{entry[0]}-{os.path.split(file_path)[1]}.profraw"
+    # result2 = subprocess.run(
+    #     command_2.split(" "),
+    #     stdout=subprocess.DEVNULL,
+    #     stderr=subprocess.PIPE
+    # )
     with open(output_path / "compile.log", "w") as file:
         file.write(result.stderr.decode())
     if result.returncode == 0:
         try:
             with open(file_path.parent / (file_path.stem + ".txt")) as file:
                 cli_args = file.read()
+            config_for_stage_1_command["args"] = cli_args
             start_time = time.time()
             thread_timings[current_thread().name] = start_time
             run_result = subprocess.run(
@@ -95,7 +74,7 @@ def compile_and_run(
     progress.update(1)
 
 
-def main(threads: int = 4, timeout: float = 5.0, compile_only: bool = False) -> None:
+def main(threads: int = 4, timeout: float = 5.0, compile_only: bool = False, debug: bool = False) -> None:
     directory = "outRust"
     files = [dI for dI in os.listdir(directory) if os.path.isdir(os.path.join(directory, dI))]
     files.sort(key=lambda x: int(x.split("file")[1]))
@@ -122,15 +101,24 @@ def main(threads: int = 4, timeout: float = 5.0, compile_only: bool = False) -> 
     for file in files:
         outputs = []
         for flag in stage_1_entries:
-            path = Path(directory, file, f"O{flag}", "output.log")
+            path = Path(directory, file, f"{flag[0]}", "output.log")
             if path.exists():
                 with open(path, "r") as output_file:
                     outputs.append(output_file.read())
             else:
-                print(f"{file}: Compilation Failure")
-                break
+                if debug:
+                    outputs = []
+                    print(f"{file}: Compilation Failure")
+                    break
+                else:
+                    outputs.append("Compilation Failure")
         if len(outputs):
-            print(f"{file}: {'All correct' if all(x == outputs[0] for x in outputs) else 'Bug found'}")
+            if all(x == outputs[0] for x in outputs):
+                print(f"{file}: All correct")
+                # exit(0)
+            else:
+                print(f"{file}: Bug found")
+                exit(1)
 
 
 typer.run(main)
