@@ -37,9 +37,7 @@ def compile_and_run(
     subprocess.run(fmt_command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     command = entry[1].format(**config_for_stage_1_command)
     # command = f"rustc -C opt-level={flag} {file_path} -o {output_path / 'out'}"
-    result = subprocess.run(
-        command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
-    )
+    result = subprocess.run(command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     # command_2 = f"cp default.profraw code-{entry[0]}-{os.path.split(file_path)[1]}.profraw"
     # result2 = subprocess.run(
     #     command_2.split(" "),
