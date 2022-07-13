@@ -33,8 +33,8 @@ def compile_and_run(
     }
     shutil.rmtree(output_path, ignore_errors=True)
     os.mkdir(output_path)
-    fmt_command = f"rustfmt {file_path}"
-    subprocess.run(fmt_command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    # fmt_command = f"rustfmt {file_path}"
+    # subprocess.run(fmt_command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     command = entry[1].format(**config_for_stage_1_command)
     # command = f"rustc -C opt-level={flag} {file_path} -o {output_path / 'out'}"
     result = subprocess.run(command.split(" "), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
